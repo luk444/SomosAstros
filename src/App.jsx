@@ -1,6 +1,8 @@
 import { Fragment, useMemo, useState } from 'react';
 import { parseChartText } from './utils/parseChart';
 import { analyzeCompatibility } from './utils/compatibility';
+import { analyzeAdvancedTechniques, generateAdvancedRecommendations } from './utils/advancedTechniques';
+import { generatePlainText, generateJSON, downloadFile } from './utils/exportUtils';
 import './App.css';
 
 /** Convierte **texto** en <strong> para párrafos generados en overlayDeep. */
@@ -135,6 +137,16 @@ export default function App() {
 
   const canAnalyze = textA.trim().length >= 80 && textB.trim().length >= 80;
 
+  const advancedSections = useMemo(() => {
+    if (!result || !chartA || !chartB) return null;
+    return analyzeAdvancedTechniques(chartA, chartB);
+  }, [result, chartA, chartB]);
+
+  const advancedRecommendations = useMemo(() => {
+    if (!result || !chartA || !chartB) return null;
+    return generateAdvancedRecommendations(chartA, chartB, result);
+  }, [result, chartA, chartB]);
+
   async function copyPrompt() {
     if (!result?.promptForAI) return;
     try {
@@ -144,6 +156,20 @@ export default function App() {
     } catch {
       setCopied(false);
     }
+  }
+
+  function downloadResultsTxt() {
+    if (!result || !chartA || !chartB) return;
+    const content = generatePlainText(result, chartA, chartB);
+    const filename = `compatibilidad-astral-${chartA.name}-${chartB.name}-${new Date().toISOString().split('T')[0]}.txt`;
+    downloadFile(content, filename, 'text/plain');
+  }
+
+  function downloadResultsJson() {
+    if (!result || !chartA || !chartB) return;
+    const content = generateJSON(result, chartA, chartB);
+    const filename = `compatibilidad-astral-${chartA.name}-${chartB.name}-${new Date().toISOString().split('T')[0]}.json`;
+    downloadFile(content, filename, 'application/json');
   }
 
   async function handlePdf(which, e) {
@@ -193,13 +219,13 @@ export default function App() {
         <p className="lede">
           Pegá dos informes completos (LosArcanos u otro con planetas y tablas Placidus). Obtenés
           aspectos entre cartas, overlays (planetas de uno en las casas del otro), puntuaciones por
-          ámbitos (emoción, química, charla, etc.) y escenarios tipo “¿cómo seríamos si…?”. Es
+          ámbitos (emoción, química, charla, etc.) y escenarios tipo "¿cómo seríamos si…?". Es
           entretenimiento y educación astrológica, no adivinación.
         </p>
       </header>
 
       <details className="guide-box">
-        <summary>Cómo leer este informe (y por qué un % “bajo” no es un fracaso)</summary>
+        <summary>Cómo leer este informe (y por qué un % "bajo" no es un fracaso)</summary>
         <ul className="guide-list">
           <li>
             <strong>Índice sintético:</strong> mezcla elementos del Sol/Luna de ambos y una lista
@@ -207,10 +233,10 @@ export default function App() {
           </li>
           <li>
             <strong>Oposiciones y cuadraturas</strong> entre Venus y Marte suelen asociarse a{' '}
-            <em>química y polaridad</em>, no solo a “problemas”. Leé la narrativa de cada fila.
+            <em>química y polaridad</em>, no solo a "problemas". Leé la narrativa de cada fila.
           </li>
           <li>
-            <strong>“Sin aspecto mayor”</strong> significa que la separación angular no entra en las
+            <strong>"Sin aspecto mayor"</strong> significa que la separación angular no entra en las
             órbitas programadas (conjunción, sextil, cuadratura, trígono, oposición). No implica que
             no haya vínculo: faltan casas, nodos, progresiones, etc.
           </li>
@@ -220,9 +246,9 @@ export default function App() {
             cruce.
           </li>
           <li>
-            <strong>Overlays (casas):</strong> “Sol de A en casa 7 de B” = la posición del Sol de A,
+            <strong>Overlays (casas):</strong> "Sol de A en casa 7 de B" = la posición del Sol de A,
             medida con las <em>casas del mapa de B</em> (cúspides del pegado). Así se ve en qué área de
-            la vida del otro “aterrizás” con cada planeta.
+            la vida del otro "aterrizás" con cada planeta.
           </li>
         </ul>
       </details>
@@ -250,12 +276,12 @@ export default function App() {
             <strong>casas Placidus</strong> o tablas de cúspides.
           </li>
           <li>
-            <strong>Copiá el texto:</strong> en PDF, seleccioná todo el informe (o desde “ver en HTML” si el sitio lo ofrece) y
+            <strong>Copiá el texto:</strong> en PDF, seleccioná todo el informe (o desde "ver en HTML" si el sitio lo ofrece) y
             copiá. Si el PDF no deja seleccionar, puede ser imagen: usá la opción de subir PDF abajo o pedí exportar a texto.
           </li>
           <li>
             <strong>Pegá en Persona A o B</strong> y repetí con la otra carta. Necesitamos suficiente texto para leer
-            posiciones; si falta la tabla de casas, los overlays marcarán “sin casas completas”.
+            posiciones; si falta la tabla de casas, los overlays marcarán "sin casas completas".
           </li>
         </ol>
       </details>
@@ -356,6 +382,18 @@ export default function App() {
             </div>
           )}
 
+          <section className="download-actions">
+            <h2>📥 Descargar Resultados</h2>
+            <div className="download-buttons">
+              <button type="button" className="btn-download btn-download-txt" onClick={downloadResultsTxt}>
+                ⬇️ Descargar como TXT
+              </button>
+              <button type="button" className="btn-download btn-download-json" onClick={downloadResultsJson}>
+                ⬇️ Descargar como JSON
+              </button>
+            </div>
+          </section>
+
           <section className="score-card">
             <div className="score-ring" style={{ '--p': result.scorePercent }}>
               <span className="score-value">{result.scorePercent}%</span>
@@ -412,7 +450,7 @@ export default function App() {
           <section className="overlays-section">
             <h2>Planetas de uno en las casas del otro (overlays)</h2>
             <p className="subtle">
-              Usamos las cúspides Placidus del informe pegado. Indica en qué “habitación” del mapa del
+              Usamos las cúspides Placidus del informe pegado. Indica en qué "habitación" del mapa del
               otro se percibe cada planeta tuyo cuando están en vínculo.
             </p>
             <div className="overlay-grid">
@@ -423,7 +461,7 @@ export default function App() {
                 {result.overlayAB.missing ? (
                   <p className="overlay-missing">
                     No se leyeron las 12 casas en el texto de {result.overlayAB.toName}. Incluí el
-                    bloque “Tablas de Casas (Placidus)” completo.
+                    bloque "Tablas de Casas (Placidus)" completo.
                   </p>
                 ) : (
                   <ul className="overlay-list">
@@ -440,7 +478,7 @@ export default function App() {
                 {result.overlayBA.missing ? (
                   <p className="overlay-missing">
                     No se leyeron las 12 casas en el texto de {result.overlayBA.toName}. Incluí el
-                    bloque “Tablas de Casas (Placidus)” completo.
+                    bloque "Tablas de Casas (Placidus)" completo.
                   </p>
                 ) : (
                   <ul className="overlay-list">
@@ -484,7 +522,7 @@ export default function App() {
               <h2>Modalidad (ritmo de acción)</h2>
               <p className="subtle">
                 Cardinal / fijo / mutable describe cómo cada uno suele arrancar, sostener o adaptar
-                cambios — no es “bueno” ni “malo”, es estilo.
+                cambios — no es "bueno" ni "malo", es estilo.
               </p>
               <ul className="notes">
                 {result.modalityNotes.map((n) => (
@@ -561,6 +599,159 @@ export default function App() {
               </table>
             </div>
           </section>
+
+          {advancedSections && (
+            <section className="advanced-techniques-section">
+              <h2>📊 Técnicas Astrológicas Avanzadas (Profundización)</h2>
+              <p className="subtle">
+                Para un análisis más completo, astrólogos profesionales utilizan estas técnicas adicionales.
+              </p>
+
+              <div className="advanced-grid">
+                {advancedSections.map((sec) => (
+                  <details key={sec.id} className="advanced-item">
+                    <summary className="advanced-summary">
+                      <span className="advanced-title">{sec.title}</span>
+                      {sec.description && <span className="advanced-desc">{sec.description}</span>}
+                    </summary>
+                    <div className="advanced-body">
+                      {sec.content && <p className="advanced-content">{sec.content}</p>}
+
+                      {sec.details?.definition && (
+                        <div className="advanced-subsection">
+                          <h4>¿Qué es?</h4>
+                          <p>{sec.details.definition}</p>
+                        </div>
+                      )}
+
+                      {sec.details?.whatItShows && (
+                        <div className="advanced-subsection">
+                          <h4>Qué muestra</h4>
+                          <ul className="advanced-list">
+                            {sec.details.whatItShows.map((item, i) => (
+                              <li key={i}>{item}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {sec.details?.connections && (
+                        <div className="advanced-subsection">
+                          <h4>Conexiones en sinastría</h4>
+                          <ul className="advanced-list">
+                            {Object.entries(sec.details.connections).map(([key, val]) => (
+                              <li key={key}>
+                                <strong>{key}:</strong> {val}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {sec.details?.asteroidList && (
+                        <div className="advanced-subsection">
+                          <ul className="asteroid-list">
+                            {sec.details.asteroidList.map((ast, i) => (
+                              <li key={i} className="asteroid-item">
+                                <strong>{ast.name}:</strong> {ast.meaning}
+                                {ast.inSynastry && <p className="asteroid-synastry">{ast.inSynastry}</p>}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {sec.details?.aspectsList && (
+                        <div className="advanced-subsection">
+                          <ul className="aspect-minor-list">
+                            {sec.details.aspectsList.map((asp, i) => (
+                              <li key={i}>
+                                <strong>{asp.name}:</strong> {asp.meaning}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {sec.details?.inSynastry && (
+                        <div className="advanced-subsection">
+                          <h4>En sinastría</h4>
+                          <ul className="advanced-list">
+                            {sec.details.inSynastry.map((item, i) => (
+                              <li key={i}>{item}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {sec.details?.recommendation && (
+                        <div className="advanced-note">
+                          <strong>💡 Recomendación:</strong> {sec.details.recommendation}
+                        </div>
+                      )}
+
+                      {sec.details?.limitation && (
+                        <div className="advanced-note advanced-warning">
+                          <strong>⚠️ Limitación:</strong> {sec.details.limitation}
+                        </div>
+                      )}
+
+                      {sec.details?.limitations && (
+                        <div className="advanced-note advanced-warning">
+                          <strong>⚠️ Limitación:</strong> {sec.details.limitations}
+                        </div>
+                      )}
+
+                      {sec.details?.howToExplore && (
+                        <div className="advanced-note">
+                          <strong>🔍 Cómo explorar:</strong> {sec.details.howToExplore}
+                        </div>
+                      )}
+
+                      {sec.details?.platforms && (
+                        <div className="advanced-note">
+                          <strong>🌐 Plataformas:</strong> {sec.details.platforms.join(', ')}
+                        </div>
+                      )}
+
+                      {sec.details?.orbsNotes && (
+                        <div className="advanced-note">
+                          <strong>📐 Nota sobre órbitas:</strong> {sec.details.orbsNotes}
+                        </div>
+                      )}
+                    </div>
+                  </details>
+                ))}
+              </div>
+
+              {advancedRecommendations && (
+                <section className="advanced-recommendations">
+                  <h3>🎯 Próximos Pasos Recomendados</h3>
+                  <div className="recommendations-grid">
+                    {advancedRecommendations.recommendations.map((rec, i) => (
+                      <div key={i} className="recommendation-card">
+                        <div className="rec-priority">{rec.priority}</div>
+                        <h4>{rec.action}</h4>
+                        <p className="rec-why">{rec.why}</p>
+                        {rec.where && <p className="rec-meta"><strong>Dónde:</strong> {rec.where}</p>}
+                        {rec.platforms && <p className="rec-meta"><strong>Plataformas:</strong> {rec.platforms.join(', ')}</p>}
+                        {rec.timing && <p className="rec-meta"><strong>Timing:</strong> {rec.timing}</p>}
+                        {rec.complexity && <p className="rec-meta"><strong>Complejidad:</strong> {rec.complexity}</p>}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="next-steps">
+                    <h4>📌 Siguientes Pasos:</h4>
+                    <ul>
+                      {advancedRecommendations.nextSteps.map((step, i) => (
+                        <li key={i}>{step}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </section>
+              )}
+            </section>
+          )}
 
           <section className="not-included">
             <h2>Qué no está en este cálculo</h2>
