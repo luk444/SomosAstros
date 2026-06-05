@@ -34,6 +34,38 @@
   margin: 0;
 }
 
+/* ═══════════════════════════════════════════ */
+/* SHARED VIEW BANNER */
+/* ═══════════════════════════════════════════ */
+
+.shared-view-banner {
+  margin-bottom: 2rem;
+  padding: 1rem 1.15rem;
+  border-radius: 12px;
+  border: 2px solid var(--accent);
+  background: linear-gradient(135deg, rgb(201 162 39 / 0.12), transparent);
+}
+
+.shared-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+  background: var(--accent);
+  color: #1a1817;
+  margin-bottom: 0.5rem;
+}
+
+.shared-note {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 .guide-box {
   margin-bottom: 1.5rem;
   padding: 0.85rem 1.1rem;
@@ -212,6 +244,7 @@
   display: flex;
   gap: 0.75rem;
   flex-wrap: wrap;
+  margin-bottom: 0.75rem;
 }
 
 .btn-download {
@@ -251,6 +284,23 @@
 
 .btn-download-json:hover {
   background: rgb(212 152 114 / 0.22);
+}
+
+.btn-download-share {
+  border-color: #b896e0;
+  color: #b896e0;
+  background: rgb(184 150 224 / 0.12);
+}
+
+.btn-download-share:hover {
+  background: rgb(184 150 224 / 0.22);
+}
+
+.share-help {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-style: italic;
 }
 
 .prompt-pre {
