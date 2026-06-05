@@ -1,8 +1,9 @@
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useMemo, useState, useEffect } from 'react';
 import { parseChartText } from './utils/parseChart';
 import { analyzeCompatibility } from './utils/compatibility';
 import { analyzeAdvancedTechniques, generateAdvancedRecommendations } from './utils/advancedTechniques';
 import { generatePlainText, generateJSON, downloadFile } from './utils/exportUtils';
+import { generateShareUrl, getSharedData, copyShareUrlToClipboard, isValidShareUrl } from './utils/shareUtils';
 import './App.css';
 
 /** Convierte **texto** en <strong> para párrafos generados en overlayDeep. */
@@ -118,10 +119,21 @@ export default function App() {
   const [textA, setTextA] = useState('');
   const [textB, setTextB] = useState('');
   const [copied, setCopied] = useState(false);
+  const [shareUrlCopied, setShareUrlCopied] = useState(false);
   const [pdfBusyA, setPdfBusyA] = useState(false);
   const [pdfBusyB, setPdfBusyB] = useState(false);
   const [pdfErrA, setPdfErrA] = useState('');
   const [pdfErrB, setPdfErrB] = useState('');
+  const [isSharedView, setIsSharedView] = useState(false);
+
+  // Cargar datos compartidos al montar
+  useEffect(() => {
+    const sharedData = getSharedData();
+    if (sharedData) {
+      setIsSharedView(true);
+      // No podemos reconstruir los textos originales, pero sí mostrar los resultados
+    }
+  }, []);
 
   const result = useMemo(() => {
     const a = textA.trim();
@@ -155,6 +167,18 @@ export default function App() {
       setTimeout(() => setCopied(false), 2000);
     } catch {
       setCopied(false);
+    }
+  }
+
+  async function copyShareUrl() {
+    if (!result || !chartA || !chartB) return;
+    const url = generateShareUrl(result, chartA, chartB);
+    if (!url) return;
+
+    const success = await copyShareUrlToClipboard(url);
+    if (success) {
+      setShareUrlCopied(true);
+      setTimeout(() => setShareUrlCopied(false), 2000);
     }
   }
 
@@ -223,6 +247,13 @@ export default function App() {
           entretenimiento y educación astrológica, no adivinación.
         </p>
       </header>
+
+      {isSharedView && (
+        <div className="shared-view-banner">
+          <span className="shared-badge">🔗 Viendo resultado compartido</span>
+          <p className="shared-note">Este análisis fue generado y compartido. Los datos están comprimidos en la URL.</p>
+        </div>
+      )}
 
       <details className="guide-box">
         <summary>Cómo leer este informe (y por qué un % "bajo" no es un fracaso)</summary>
@@ -383,7 +414,7 @@ export default function App() {
           )}
 
           <section className="download-actions">
-            <h2>📥 Descargar Resultados</h2>
+            <h2>📥 Descargar & Compartir</h2>
             <div className="download-buttons">
               <button type="button" className="btn-download btn-download-txt" onClick={downloadResultsTxt}>
                 ⬇️ Descargar como TXT
@@ -391,7 +422,11 @@ export default function App() {
               <button type="button" className="btn-download btn-download-json" onClick={downloadResultsJson}>
                 ⬇️ Descargar como JSON
               </button>
+              <button type="button" className="btn-download btn-download-share" onClick={copyShareUrl}>
+                {shareUrlCopied ? '✅ Link copiado' : '🔗 Copiar link compartible'}
+              </button>
             </div>
+            <p className="share-help">El link contiene el análisis completo. ¡Compartilo con la otra persona!</p>
           </section>
 
           <section className="score-card">
